@@ -6,7 +6,7 @@ import java.awt.geom.Point2D;
 /**
  * MyClass - a class by (your name here)
  */
-public class PatternPredictiveFiring implements IFiringImpl
+public class PatternPredictiveFiring extends FiringBase implements IFiringImpl
 {
 	PatternTracker _tracker;
 	public PatternPredictiveFiring(PatternTracker tracker)
@@ -16,7 +16,7 @@ public class PatternPredictiveFiring implements IFiringImpl
 
 	public void performFiringLogic(AdvancedRobot sourceRobot, TargetRobot targetRobot)
 	{
-		double bulletPower = getBulletPower(sourceRobot, targetRobot);
+		double bulletPower = getBulletPower(sourceRobot, targetRobot.getCurrentTargetData());
 		long patternIndex = _tracker.findSimilarPeriodEndIndex(sourceRobot, targetRobot.getCurrentTargetData(), bulletPower);
 		
 		if (patternIndex > 0)
@@ -30,27 +30,5 @@ public class PatternPredictiveFiring implements IFiringImpl
 			LinearPredictiveFiring firing = new LinearPredictiveFiring();
 			firing.performFiringLogic(sourceRobot, targetRobot);
 		}
-	}
-
-	protected double getBulletPower(AdvancedRobot sourceRobot, TargetRobot targetRobot)
-	{
-		TargetData targetData = targetRobot.getCurrentTargetData();
-		double distance = targetData.getDistance();
-		double power;
-		if (distance > 300 || (sourceRobot.getEnergy() < 40 && distance > 100))
-		{
-			power = 1;
-		}
-		else if (distance < 50)
-		{
-			power = 3;
-		}
-		else
-		{
-			power = 3 - ((distance-50) * .008);  // Provides a linear increase of power from 1 to 3 as the distance goes from 299 to 51
-		}
-
-		System.out.print("Distance: " + distance + " Power: " + power + "\n");
-		return power;		
 	}
 }

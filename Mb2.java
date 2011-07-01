@@ -67,13 +67,13 @@ public class Mb2 extends AdvancedRobot
 		}
 		
 		iterator = theEnemyMap.values().iterator();
-		System.out.print("Has found robot: " + iterator.hasNext() + "\n");
+		//System.out.print("Has found robot: " + iterator.hasNext() + "\n");
 		if (iterator.hasNext())
 		{
 			TargetRobot target = (TargetRobot)iterator.next();
 			_tracker.feedData(this, target);
 			//LinearPredictiveFiring firing = new LinearPredictiveFiring();
-			//firing.performFiringLogic(this, (TargetRobot)iterator.next());
+			//firing.performFiringLogic(this, target);
 			PatternPredictiveFiring firing = new PatternPredictiveFiring(_tracker);
 			firing.performFiringLogic(this, target);
 		}
@@ -145,7 +145,7 @@ private void sweep() {
   	double radarTurn=180*radarDirection;
   	if (scannedBots==getOthers()) 
 	{
-		System.out.print("Min Distance: "+minDistance+"\n");
+		//System.out.print("Min Distance: "+minDistance+"\n");
 					
 		if (minDistance < 250)
 		{
