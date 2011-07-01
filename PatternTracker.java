@@ -4,7 +4,9 @@ import java.util.*;
 import robocode.util.*;
 import java.awt.geom.Point2D;
 /**
- * MyClass - a class by (your name here)
+ * Pattern Tracker
+ *
+ * Pattern matching logic based on an algorithm in PEZ's LeachPMC Robot
  */
 public class PatternTracker
 {

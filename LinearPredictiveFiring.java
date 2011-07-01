@@ -12,6 +12,7 @@ public class LinearPredictiveFiring implements IFiringImpl
 	
 	public void performFiringLogic(AdvancedRobot sourceRobot, TargetRobot targetRobot)
 	{
+		System.out.print("Firing Logic\n");
 		TargetData targetData = targetRobot.getCurrentTargetData();		
 		
 		// Start with initial guesses at 10 and 20 ticks		
@@ -22,9 +23,11 @@ public class LinearPredictiveFiring implements IFiringImpl
 		double turnAngle = Utils.normalRelativeAngleDegrees
 			(bulletHeadingDegrees - sourceRobot.getGunHeading());
 			
+		System.out.print("Turn Angle: " + turnAngle + "\n");
 		sourceRobot.setTurnGunRight(turnAngle);
 		
 		double angleThreshold = calcAngleThreshold(targetRobot.getCurrentTargetData());
+		System.out.print("Angle threshold: " + angleThreshold + " Turn Angle: " + turnAngle + "\n");
 		if (Math.abs(turnAngle) <= angleThreshold) {
   			// Ensure that the gun is pointing at the correct angle
   			if (
@@ -57,7 +60,23 @@ public class LinearPredictiveFiring implements IFiringImpl
 
 	protected double getBulletPower(AdvancedRobot sourceRobot, TargetData targetData)
 	{
-		return 1;
+		double distance = targetData.getDistance();
+		double power;
+		if (distance > 300 || (sourceRobot.getEnergy() < 40 && distance > 100))
+		{
+			power = 1;
+		}
+		else if (distance < 50)
+		{
+			power = 3;
+		}
+		else
+		{
+			power = 3 - ((distance-50) * .008);  // Provides a linear increase of power from 1 to 3 as the distance goes from 299 to 51
+		}
+
+		System.out.print("Distance: " + distance + " Power: " + power + "\n");
+		return power;							
 	}
 
 	protected Point2D.Double getEstimatedPosition(TargetData targetData, double time)
