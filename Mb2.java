@@ -17,6 +17,9 @@ public class Mb2 extends AdvancedRobot
 	private PatternTracker _tracker = new PatternTracker();
 	private int _radarDirection=1;
 	private HashMap<String,TargetRobot> _targetMap=new HashMap<String,TargetRobot>();
+	private double _minDistanceToEnemy = 450;
+	private double _minWallDistance = 100;
+	int _moveDirection = 1;
 	
 	/**
 	 * run: Mb1's default behavior
@@ -30,6 +33,21 @@ public class Mb2 extends AdvancedRobot
 		setColors(Color.blue,Color.red,Color.yellow); // body,gun,radar
 
 		addCustomEvent(new RadarTurnCompleteCondition(this));
+		addCustomEvent(new Condition("close_to_walls") {
+			public boolean test() {
+				return (
+					// we're too close to the left wall
+					(getX() <= _minWallDistance ||
+					 // or we're too close to the right wall
+					 getX() >= getBattleFieldWidth() - _minWallDistance ||
+					 // or we're too close to the bottom wall
+					 getY() <= _minWallDistance ||
+					 // or we're too close to the top wall
+					 getY() >= getBattleFieldHeight() - _minWallDistance)
+					);
+				}
+			});
+				
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		setTurnRadarRight(360);
@@ -38,6 +56,53 @@ public class Mb2 extends AdvancedRobot
 		while(true) {
 			execute();
 		}
+	}
+
+	private void doMove(TargetRobot targetRobot) {
+		// TODO Auto-generated method stub
+		double targetBearing = targetRobot.getCurrentTargetData().getBearing();
+		double targetDistance = targetRobot.getCurrentTargetData().getDistance();
+		double targetHeading = targetRobot.getCurrentTargetData().getHeading();
+		
+//		if (targetDistance <= _minDistanceToEnemy)
+//			_moveDirection *= -1;
+		
+		System.out.println("Bearing: " + targetBearing);
+		System.out.println("Heading: " + targetHeading);
+		System.out.println("Distance: " + targetDistance);
+		System.out.println("Direction: " + _moveDirection);
+		
+		//setTurnRight(_targetRobot.getCurrentTargetData().getBearing() + 120);
+//		if (targetDistance <= 100)
+//			setTurnRight(targetBearing + 90 - (10 * moveDirection));
+//		else if (targetDistance <= 200)
+//			setTurnRight(targetBearing - 60);
+//		else if (targetDistance <= 300)
+//			setTurnRight(targetBearing - 30);
+//		else if (targetDistance <= 400)
+//			setTurnRight(targetBearing + 90);
+//		else if (targetDistance <= 500)
+//			setTurnRight(targetBearing + 110);
+//		else if (targetDistance <= 600)
+//			setTurnRight(targetBearing + 130);
+//		else
+//			setTurnRight(targetBearing + 140);
+			
+		
+		if (targetDistance <= _minDistanceToEnemy)
+		{
+			setTurnRight(targetBearing - 90 - (10 * _moveDirection));
+			System.out.println("Within distance ");
+		}
+		else
+		{
+			setTurnRight(targetBearing + 90 - (10 * _moveDirection));
+			System.out.println("Not Within distance ");
+		}		
+		
+		setAhead(8 * _moveDirection);			
+		
+		System.out.println("My bearing: " + getHeading());
 	}
 
 	/**
@@ -75,6 +140,7 @@ public class Mb2 extends AdvancedRobot
 			//firing.performFiringLogic(this, target);
 			PatternPredictiveFiring firing = new PatternPredictiveFiring(_tracker);
 			firing.performFiringLogic(this, target);
+			doMove(target);
 		}
 		
 	}
@@ -98,6 +164,25 @@ public class Mb2 extends AdvancedRobot
 	public void onCustomEvent(CustomEvent e) {
 	  	if (e.getCondition() instanceof RadarTurnCompleteCondition) 
 			performScan();
+			
+	  	if (e.getCondition().getName().equals("close_to_walls"))
+		{
+			// switch directions and move away	
+	  		System.out.println("WALL!!");
+	  		_moveDirection *= -1;
+	  		if (getTime() % 2 == 0)
+	  		{
+	  			setTurnRight(45);
+	  			System.out.println("back right 45");
+	  		}
+	  		else
+	  		{
+	  			setTurnLeft(45);
+	  			System.out.println("back left 45");
+	  		}
+	  		ahead(200 * _moveDirection);
+		}
+			
 	}
 
 	private Point2D.Double calcTargetLocation(ScannedRobotEvent scanEvent)
@@ -149,56 +234,24 @@ public class Mb2 extends AdvancedRobot
 					
 			if (minDistance < 250)
 			{
-				radarTurn=maxBearing+sign(maxBearing)*12; 
+				radarTurn=maxBearing+sign(maxBearing)*20; 
 			}
 			else
-				radarTurn=maxBearing+sign(maxBearing)*1; 
+				radarTurn=maxBearing+sign(maxBearing)*10; 
 		}	
 
   		setTurnRadarRight(radarTurn);
   		_radarDirection=sign(radarTurn);
 
-}
-
-
-
-
-
-private int sign(double n)
-{
-	if (n > 0)
-		return 1;
-	else
-		return -1;
-}
-
-/*
-public class CircularIntercept extends Intercept {
-	protected Coordinate getEstimatedPosition(double time) {
-  		if (Math.abs(angularVelocity_rad_per_sec) <= Math.toRadians(0.1)) {
-  			return super.getEstimatedPosition(time);
- 		}
-
-    	double initialTargetHeading = Math.toRadians(targetHeading);
-    	double finalTargetHeading   = initialTargetHeading +  
-     		angularVelocity_rad_per_sec * time;
-    	double x = targetStartingPoint.x - targetVelocity /
-     		angularVelocity_rad_per_sec *(Math.cos(finalTargetHeading) - 
-     		Math.cos(initialTargetHeading));
-    	double y = targetStartingPoint.y - targetVelocity / 
-     		angularVelocity_rad_per_sec *
-     		(Math.sin(initialTargetHeading) - 
-     		Math.sin(finalTargetHeading));
-
-    	return new Coordinate(x,y);
 	}
-}
-*/
 
-
-
-
-     
+	private int sign(double n)
+	{
+		if (n > 0)
+			return 1;
+		else
+			return -1;
+	} 
 }
 
 
