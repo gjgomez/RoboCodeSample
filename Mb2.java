@@ -1,5 +1,6 @@
 package R2R;
 import robocode.*;
+import java.awt.*;
 import java.util.*;
 import robocode.util.*;
 import java.awt.geom.Point2D;
@@ -13,8 +14,9 @@ import java.awt.geom.Point2D;
 public class Mb2 extends AdvancedRobot
 {
 	private long timeSinceLastScan;
-	private TargetRobot _targetRobot;
 	private PatternTracker _tracker = new PatternTracker();
+	private int _radarDirection=1;
+	private HashMap<String,TargetRobot> _targetMap=new HashMap<String,TargetRobot>();
 	
 	/**
 	 * run: Mb1's default behavior
@@ -25,16 +27,13 @@ public class Mb2 extends AdvancedRobot
 		// After trying out your robot, try uncommenting the import at the top,
 		// and the next line:
 
-		// setColors(Color.red,Color.blue,Color.green); // body,gun,radar
+		setColors(Color.blue,Color.red,Color.yellow); // body,gun,radar
 
-		addCustomEvent(new
-		  RadarTurnCompleteCondition(this));
+		addCustomEvent(new RadarTurnCompleteCondition(this));
 		setAdjustRadarForGunTurn(true);
 		setAdjustGunForRobotTurn(true);
 		setTurnRadarRight(360);
  
-
-
 		// Robot main loop
 		while(true) {
 			execute();
@@ -46,7 +45,7 @@ public class Mb2 extends AdvancedRobot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
 		boolean foundRobot = false;
-		Iterator iterator = theEnemyMap.values().
+		Iterator iterator = _targetMap.values().
     		iterator();
 
 	  	while(iterator.hasNext()) {
@@ -63,10 +62,10 @@ public class Mb2 extends AdvancedRobot
 		{
 			TargetRobot tRobot = new TargetRobot(e.getName());
 			tRobot.recordScanEvent(e, calcTargetLocation(e));
-			theEnemyMap.put(tRobot.getName(), tRobot);
+			_targetMap.put(tRobot.getName(), tRobot);
 		}
 		
-		iterator = theEnemyMap.values().iterator();
+		iterator = _targetMap.values().iterator();
 		//System.out.print("Has found robot: " + iterator.hasNext() + "\n");
 		if (iterator.hasNext())
 		{
@@ -98,7 +97,7 @@ public class Mb2 extends AdvancedRobot
 
 	public void onCustomEvent(CustomEvent e) {
 	  	if (e.getCondition() instanceof RadarTurnCompleteCondition) 
-			sweep();
+			performScan();
 	}
 
 	private Point2D.Double calcTargetLocation(ScannedRobotEvent scanEvent)
@@ -114,54 +113,51 @@ public class Mb2 extends AdvancedRobot
 		return new Point2D.Double(targetX, targetY);
 	}
  
-private int radarDirection=1;
-private HashMap<String,TargetRobot> theEnemyMap=new HashMap<String,TargetRobot>();
 
-private void sweep() {
-  double maxBearingAbs=0, maxBearing=0, minDistance=1000;
-  int scannedBots=0;
-  Iterator iterator = theEnemyMap.values().
-    iterator();
+	private void performScan() {
+  		double maxBearingAbs=0, maxBearing=0, minDistance=1000;
+  		int scannedBots=0;
+  		Iterator iterator = _targetMap.values().iterator();
 
-  while(iterator.hasNext()) {
-    TargetRobot tRobot = (TargetRobot)iterator.next();
-	TargetData tData = tRobot.getCurrentTargetData();
-
-    if (tRobot!=null && tRobot.isUpdated(this.getTime())) {
-      double bearing=Utils.normalRelativeAngleDegrees
-        (getHeading() + tData.getBearing()
-         - getRadarHeading());
-      if (Math.abs(bearing)>maxBearingAbs) { 
-        maxBearingAbs=Math.abs(bearing); 
-        maxBearing=bearing; 
-      }
-		double distance = tData.getDistance();
-		if (minDistance > distance)
-			minDistance = distance;
-      scannedBots++;
-    }
-  }
-
-  	double radarTurn=180*radarDirection;
-  	if (scannedBots==getOthers()) 
-	{
-		//System.out.print("Min Distance: "+minDistance+"\n");
-					
-		if (minDistance < 250)
+  		while(iterator.hasNext()) 
 		{
-			radarTurn=maxBearing+sign(maxBearing)*12; 
-		}
-		else
-			radarTurn=maxBearing+sign(maxBearing)*1; 
-	}	
-    
+    		TargetRobot tRobot = (TargetRobot)iterator.next();
+			TargetData tData = tRobot.getCurrentTargetData();
 
-  setTurnRadarRight(radarTurn);
-  radarDirection=sign(radarTurn);
+    		if (tRobot!=null && tRobot.isUpdated(this.getTime())) 
+			{
+      			double bearing = Utils.normalRelativeAngleDegrees
+        			(getHeading() + tData.getBearing() - getRadarHeading());
+      			if (Math.abs(bearing)>maxBearingAbs) 
+				{ 
+        			maxBearingAbs = Math.abs(bearing); 
+        			maxBearing = bearing; 
+      			}
 
-	iterator = theEnemyMap.values().iterator();
-	if (iterator.hasNext())
-		_targetRobot = (TargetRobot)iterator.next();
+				double distance = tData.getDistance();
+				if (minDistance > distance)
+					minDistance = distance;
+				
+      			scannedBots++;
+    		}
+  		}
+
+  		double radarTurn=180*_radarDirection;
+  		if (scannedBots==getOthers()) 
+		{
+			//System.out.print("Min Distance: "+minDistance+"\n");
+					
+			if (minDistance < 250)
+			{
+				radarTurn=maxBearing+sign(maxBearing)*12; 
+			}
+			else
+				radarTurn=maxBearing+sign(maxBearing)*1; 
+		}	
+
+  		setTurnRadarRight(radarTurn);
+  		_radarDirection=sign(radarTurn);
+
 }
 
 

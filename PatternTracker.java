@@ -10,14 +10,13 @@ import java.awt.geom.Point2D;
  */
 public class PatternTracker
 {
-    static final long MOVIE_LENGTH = 7000;
+    static final long MOVIE_LENGTH = 9000;
     static final char BREAK_KEY = (char)0;
-    static final int NO_BEARING = -1000;
 
-    static StringBuffer pattern = new StringBuffer((int)MOVIE_LENGTH);
-    static ArrayList<Frame> movie = new ArrayList<Frame>((int)MOVIE_LENGTH);
-    static boolean movieIsFull = false;
-    static long movieSize = 0;
+    static StringBuffer _pattern = new StringBuffer((int)MOVIE_LENGTH);
+    static ArrayList<Frame> _movie = new ArrayList<Frame>((int)MOVIE_LENGTH);
+    static boolean _movieIsFull = false;
+    static long _movieSize = 0;
 
 	int searches;
 	double _targetHeading;
@@ -39,7 +38,7 @@ public class PatternTracker
         _time += timeDelta;
 		
 		record(Utils.normalRelativeAngle(headingDelta), targetData.getVelocity(), timeDelta);
-
+		//System.out.print("Movie length: " + _movie.size() + "\n");
 	}
 
     public double calcProjectedBearing(AdvancedRobot sourceRobot, TargetRobot targetRobot, double bulletPower, long index) {
@@ -53,8 +52,8 @@ public class PatternTracker
         long bulletTravelTime = 0;
         if (index > 0) {
             double frameHeading = _targetHeading;
-            for (int i = (int)index; i < movieSize && travelTime <= bulletTravelTime; i++) {
-                Frame frame = (Frame)movie.get(i);
+            for (int i = (int)index; i < _movieSize && travelTime <= bulletTravelTime; i++) {
+                Frame frame = (Frame)_movie.get(i);
 				double deltaX = Math.sin(frameHeading) * frame.getVelocity();
 				double deltaY = Math.cos(frameHeading) * frame.getVelocity();
                 newX += deltaX;
@@ -79,24 +78,24 @@ public class PatternTracker
 		double bulletVelocity = 20 - 3 * bulletPower;
 		long maxBulletTravelTime = calcMaxBulletTravelTime(targetData.getDistance(), bulletVelocity);
         searches++;
-        if (maxTryLength > 1 && movieSize > maxTryLength + 1 + maxBulletTravelTime) {
-            long patternLength = movieSize - maxBulletTravelTime;
-            String patternString = pattern.substring(0, (int)patternLength);
-            String searchString  = pattern.substring((int)(movieSize - maxTryLength));
+        if (maxTryLength > 1 && _movieSize > maxTryLength + 1 + maxBulletTravelTime) {
+            long _patternLength = _movieSize - maxBulletTravelTime;
+            String _patternString = _pattern.substring(0, (int)_patternLength);
+            String searchString  = _pattern.substring((int)(_movieSize - maxTryLength));
             long tryLength = maxTryLength;
             long upper = maxTryLength;
             do {
                 boolean foundMatch = false;
                 if (_time > 600) {
-                    index = patternString.lastIndexOf(searchString.substring((int)(maxTryLength - tryLength)));
+                    index = _patternString.lastIndexOf(searchString.substring((int)(maxTryLength - tryLength)));
                 }
                 else {
-                    index = patternString.indexOf(searchString.substring((int)(maxTryLength - tryLength)));
+                    index = _patternString.indexOf(searchString.substring((int)(maxTryLength - tryLength)));
                 }
                 if (index >= 0) {
                     long endIndex = index + tryLength;
-                    if (patternLength > endIndex + maxBulletTravelTime + 1 && 
-                            patternString.substring((int)endIndex,
+                    if (_patternLength > endIndex + maxBulletTravelTime + 1 && 
+                            _patternString.substring((int)endIndex,
                                 (int)(endIndex + maxBulletTravelTime + 1)).indexOf(BREAK_KEY) < 0) {
                         foundMatch = true;
                         matchIndex = index;
@@ -145,15 +144,15 @@ public class PatternTracker
 
     void record(Frame frame) 
 	{
-        movie.add(frame);
-        pattern.append((char)(frame.getKey()));
-        if (movieIsFull) {
-            pattern.deleteCharAt(0);
-            movie.remove(0);
+        _movie.add(frame);
+        _pattern.append((char)(frame.getKey()));
+        if (_movieIsFull) {
+            _pattern.deleteCharAt(0);
+            _movie.remove(0);
         }
         else {
-            movieSize++;
-            movieIsFull = movieSize >= MOVIE_LENGTH;
+            _movieSize++;
+            _movieIsFull = _movieSize >= MOVIE_LENGTH;
         }
     }
 
@@ -213,4 +212,4 @@ public class PatternTracker
 	}
 
 }
-	
+																																																					
