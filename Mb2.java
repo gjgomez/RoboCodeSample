@@ -20,6 +20,11 @@ public class Mb2 extends AdvancedRobot
 	private double _minDistanceToEnemy = 450;
 	private double _minWallDistance = 100;
 	int _moveDirection = 1;
+	int _moveSeqCount = 0;
+	int _moveSeqTurnCount = 0;
+	double _moveSeqHeading;
+	double _moveSeqTurnIncr;
+	
 	
 	/**
 	 * run: Mb1's default behavior
@@ -59,6 +64,18 @@ public class Mb2 extends AdvancedRobot
 	}
 
 	private void doMove(TargetRobot targetRobot) {
+		
+		if (_moveSeqCount > 0)
+		{
+			_moveSeqCount--;
+			if (_moveSeqTurnCount > 0)
+			{
+				_moveSeqTurnCount--;
+				setTurnRight(_moveSeqTurnIncr);
+			}
+			setAhead(8 * _moveDirection);
+			return;
+		}
 		// TODO Auto-generated method stub
 		double targetBearing = targetRobot.getCurrentTargetData().getBearing();
 		double targetDistance = targetRobot.getCurrentTargetData().getDistance();
@@ -67,11 +84,12 @@ public class Mb2 extends AdvancedRobot
 //		if (targetDistance <= _minDistanceToEnemy)
 //			_moveDirection *= -1;
 		
+		/*
 		System.out.println("Bearing: " + targetBearing);
 		System.out.println("Heading: " + targetHeading);
 		System.out.println("Distance: " + targetDistance);
 		System.out.println("Direction: " + _moveDirection);
-		
+		*/
 		//setTurnRight(_targetRobot.getCurrentTargetData().getBearing() + 120);
 //		if (targetDistance <= 100)
 //			setTurnRight(targetBearing + 90 - (10 * moveDirection));
@@ -92,17 +110,17 @@ public class Mb2 extends AdvancedRobot
 		if (targetDistance <= _minDistanceToEnemy)
 		{
 			setTurnRight(targetBearing - 90 - (10 * _moveDirection));
-			System.out.println("Within distance ");
+			//System.out.println("Within distance ");
 		}
 		else
 		{
 			setTurnRight(targetBearing + 90 - (10 * _moveDirection));
-			System.out.println("Not Within distance ");
+			//System.out.println("Not Within distance ");
 		}		
 		
 		setAhead(8 * _moveDirection);			
 		
-		System.out.println("My bearing: " + getHeading());
+		//System.out.println("My bearing: " + getHeading());
 	}
 
 	/**
@@ -145,22 +163,6 @@ public class Mb2 extends AdvancedRobot
 		
 	}
 
-	/**
-	 * onHitByBullet: What to do when you're hit by a bullet
-	 */
-	public void onHitByBullet(HitByBulletEvent e) {
-		// Replace the next line with any behavior you would like
-		setBack(10);
-	}
-	
-	/**
-	 * onHitWall: What to do when you hit a wall
-	 */
-	public void onHitWall(HitWallEvent e) {
-		// Replace the next line with any behavior you would like
-		setBack(-40);
-	}	
-
 	public void onCustomEvent(CustomEvent e) {
 	  	if (e.getCondition() instanceof RadarTurnCompleteCondition) 
 			performScan();
@@ -169,20 +171,42 @@ public class Mb2 extends AdvancedRobot
 		{
 			// switch directions and move away	
 	  		System.out.println("WALL!!");
-	  		_moveDirection *= -1;
-	  		if (getTime() % 2 == 0)
-	  		{
-	  			setTurnRight(45);
-	  			System.out.println("back right 45");
-	  		}
-	  		else
-	  		{
-	  			setTurnLeft(45);
-	  			System.out.println("back left 45");
-	  		}
-	  		ahead(200 * _moveDirection);
+	
+			double newHeading = calcWallAvoidanceHeading();
+			if (_moveSeqHeading != newHeading || _moveSeqCount == 0)
+			{
+				_moveSeqHeading = newHeading;
+				double bearing = calcWallAvoidanceBearing(newHeading);
+				_moveSeqTurnIncr = bearing / 5;
+				_moveSeqTurnCount = 4;
+				setTurnRight(_moveSeqTurnIncr);
+	
+				_moveDirection = 1;
+				_moveSeqCount = 20;
+		  		ahead(8 * _moveDirection);
+			}
+			else
+			{
+				System.out.println("Wall avoidance - Heading: " + getHeading() + ", New Heading: " + 
+					_moveSeqHeading + "\n");
+			}
 		}
 			
+	}
+
+	/**
+	 * onHitWall: What to do when you hit a wall
+	 */
+
+	public void onHitWall(HitWallEvent e) {
+		System.out.println("Hit wall");
+		double newHeading = calcWallAvoidanceHeading();
+		_moveSeqHeading = newHeading;
+		double bearing = calcWallAvoidanceBearing(newHeading);
+		_moveSeqTurnIncr = 0;
+		setTurnRight(bearing);
+		_moveSeqCount = 20;
+		ahead(8 * _moveDirection);
 	}
 
 	private Point2D.Double calcTargetLocation(ScannedRobotEvent scanEvent)
@@ -198,6 +222,47 @@ public class Mb2 extends AdvancedRobot
 		return new Point2D.Double(targetX, targetY);
 	}
  
+	private double calcWallAvoidanceHeading()
+	{
+		double robotX = getX();
+		double robotY = getY();
+		double newHeading;
+		if (robotX < _minWallDistance * 2)
+		{
+			if (robotY < _minWallDistance * 2)
+				newHeading = 45;
+			else if (robotY > (getBattleFieldHeight() - (_minWallDistance * 2)))
+				newHeading = 135;
+			else
+				newHeading = 90;
+		}
+		else if (robotX > (getBattleFieldWidth() - (_minWallDistance * 2)))
+		{
+			if (robotY < _minWallDistance * 2)
+				newHeading = 315;
+			else if (robotY > (getBattleFieldHeight() - (_minWallDistance * 2)))
+				newHeading = 225;
+			else
+				newHeading = 270;
+		}
+		else if (robotY < _minWallDistance * 2)
+			newHeading = 0;
+		else
+			newHeading = 180;
+			
+		return newHeading;		
+	}
+
+	private double calcWallAvoidanceBearing(double newHeading)
+	{
+		double turnDegrees = newHeading - getHeading();
+		if (Math.abs(turnDegrees) > 180)
+			turnDegrees = (Math.abs(turnDegrees) - 360) * sign(turnDegrees);
+		System.out.println("Wall avoidance - Heading: " + getHeading() + ", New Heading: " + 
+			newHeading + ", Turn Degrees: " + turnDegrees + "\n");
+
+		return turnDegrees;				
+	}			
 
 	private void performScan() {
   		double maxBearingAbs=0, maxBearing=0, minDistance=1000;
